@@ -2,33 +2,37 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
-
+__TEST_IMG = "data/dog.jpg"
 
 def display_img(rgb_img):
     plt.imshow(rgb_img)
-    plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+    # to hide tick values on X and Y axis
+    plt.xticks([]), plt.yticks([])
     plt.show()
 
-def get_img():
-    bgr_img = cv2.imread("data/dog.jpg")
-    b, g, r = cv2.split(bgr_img)  # get b,g,r
-    rgb_img = cv2.merge([r, g, b])  # switch it to rgb
 
+def get_img():
+    bgr_img = cv2.imread(__TEST_IMG)
+    # get bgr and switch to rgb
+    b, g, r = cv2.split(bgr_img)
+    rgb_img = cv2.merge([r, g, b])
     return rgb_img
+
 
 if __name__ == '__main__':
     img = get_img()
-    mask = np.zeros_like(img)
+    # When performing the bitwise and we need to have 0s in the mask
+    # and the original RGB value for the other regions, thus in a
+    # Bitwise operation, we need whatever RGB value is and 2)11111111 = 10)255
+    mask = np.full_like(img, 255)
 
-    cv2.rectangle(mask, (0, 0), (100, 100), (255,255,255), -1)
-    masked_img_1 = cv2.bitwise_and(img, mask)
+    # Drawing of our masks
+    cv2.rectangle(mask, (265, 17), (380, 137), 0, -1)
+    cv2.rectangle(mask, (0,280), (100, 320), 0, -1)
 
-    print(masked_img_1)
-    display_img(masked_img_1)
+    print(mask)
 
-
-    # masked_img = cv2.bitwise_and(img, mask)
-
-
-
+    # Apply the mask and display the result
+    maskedImg = cv2.bitwise_and(img, mask)
+    display_img(maskedImg)
 
