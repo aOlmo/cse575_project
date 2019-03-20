@@ -1,7 +1,6 @@
 import os
 import cv2
 import glob
-import scipy.misc
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -15,7 +14,6 @@ def display_img(rgb_img):
     plt.xticks([]), plt.yticks([])
     plt.show()
 
-
 def get_sample_img():
     bgr_img = cv2.imread(__TEST_IMG__)
     # get bgr and switch to rgb
@@ -23,12 +21,21 @@ def get_sample_img():
     rgb_img = cv2.merge([r, g, b])
     return rgb_img
 
-def apply_mask(mask, img):
-    cv2.rectangle(mask, (265, 17), (380, 137), 0, -1)
-    cv2.rectangle(mask, (0, 280), (100, 320), 0, -1)
+
+# TODO: Create a set of different masks
+def apply_mask(mask, img, opposite=False):
+    val = 0 if not opposite else 255
+
+    cv2.rectangle(mask, (265, 17), (380, 137), (val, val, val), -1)
+    cv2.rectangle(mask, (0, 280), (100, 320), (val, val, val), -1)
 
     # Apply the mask and return the result
     return cv2.bitwise_and(img, mask)
+
+
+def apply_blur(img):
+    blurred_image = cv2.blur(img, (10,10))
+    return blurred_image
 
 
 def get_img(img):
@@ -47,14 +54,30 @@ if __name__ == '__main__':
         # When performing the bitwise and we need to have 0s in the mask
         # and the original RGB value for the other regions, thus in a
         # Bitwise operation, we need whatever RGB value is and 2)11111111 = 10)255
-        mask = np.full_like(img, 255)
+        mask_full = np.full_like(img, 255)
+        mask_zeros = np.full_like(img, 0)
+
+        # To apply blur:
+        # ------------------------------------------------------------------
+        # 1) Get image twice and remove those regions of interest from one of them (values = 0)
+        # 2) In the other one, have exactly the opposite, only the parts of the image we are interested in
+        # 3) Apply blur to the second one
+        # 4) Add both together
+        # ------------------------------------------------------------------
 
         # Apply the mask and display image
-        masked_img = apply_mask(mask, img)
+        masked_img = apply_mask(mask_full, img)
+        opposite_img = apply_mask(mask_zeros, img, True)
+
+        # Apply blur to opposite img
+        #TODO: solve borders problem:
+        # it could be because when adding, the values around the blurred borders are not 0
+        # (but they should)
+        blurred_patches = apply_blur(opposite_img)
+        final_img = masked_img + blurred_patches
+        display_img(final_img)
 
         # Save image
-        scipy.misc.imsave(__RESULTS_FOLDER__+name+"_masked"+ext, masked_img)
+        # scipy.misc.imsave(__RESULTS_FOLDER__+name+"_masked"+ext, masked_img)
 
         # TODO: Save mask too
-        display_img(masked_img)
-
