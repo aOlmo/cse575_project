@@ -21,12 +21,14 @@ with tempfile.TemporaryFile() as tmp:
     tar = tarfile.open(fileobj=tmp)
     tar.extractall()
     tar.close()
-    # print("renaming folder to 'data'")
-    # os.rename('Images/', 'data/')
-    print("moving pugs to data folder")
-    files = os.listdir('Images/n02110958-pug/')
-    for f in files:
-        shutil.move('Images/n02110958-pug/' + f, 'data/')
-    # print("removing extra dog images")
-    # os.remove('Images/')
+    if not os.path.exists('data/'):  # check if data folder does not exist
+        os.mkdir('data/')
+    print("moving images to data folder")
+    folders = os.listdir('Images/')
+    for folder in folders:
+        files = os.listdir('Images/' + folder + '/')
+        for image in files:
+            shutil.move('Images/' + folder + '/' + image, 'data/')
+        os.rmdir('Images/' + folder + '/')
+    os.rmdir('Images/')
     print("done")
