@@ -25,8 +25,8 @@ def get_sample_img():
 # TODO: Create more masks
 def get_mask(mask):
     val = 255
-    cv2.rectangle(mask, (265, 17), (380, 137), (val, val, val), -1)
-    cv2.rectangle(mask, (0, 280), (100, 320), (val, val, val), -1)
+    cv2.rectangle(mask, (221, 17), (321, 137), (val, val, val), -1)
+    cv2.rectangle(mask, (0, 210), (100, 120), (val, val, val), -1)
 
     return mask
 
@@ -48,15 +48,17 @@ if __name__ == '__main__':
     for file in glob.glob(__IMGS_FOLDER__+"*.*"):
         name, ext = os.path.splitext(file.split("/")[-1])
         img = get_img(file)
+        img = cv2.resize(img, (256, 256))
 
         mask_zeros = np.zeros_like(img)
-
         blurred_img = apply_blur(img)
-        # TODO: Get more masks
+
         mask_zeros = get_mask(mask_zeros)
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), blurred_img, img)
 
-        display_img(img_with_blurs)
+        numpy_horizontal = np.hstack((img, img_with_blurs))
+
+        display_img(numpy_horizontal)
 
         # Save image
         misc.imsave(__RESULTS_FOLDER__+name+"_masked"+ext, img_with_blurs)
