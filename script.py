@@ -45,7 +45,7 @@ def get_img(img):
 
 if __name__ == '__main__':
 
-    for file in glob.glob(__IMGS_FOLDER__+"*.*"):
+    for i, file in enumerate(glob.glob(__IMGS_FOLDER__+"*.*")):
         name, ext = os.path.splitext(file.split("/")[-1])
         img = get_img(file)
         img = cv2.resize(img, (256, 256))
@@ -56,11 +56,11 @@ if __name__ == '__main__':
         mask_zeros = get_mask(mask_zeros)
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), blurred_img, img)
 
-        numpy_horizontal = np.hstack((img, img_with_blurs))
+        imgs_side_2_side = np.hstack((img, img_with_blurs))
 
-        display_img(numpy_horizontal)
+        display_img(imgs_side_2_side)
 
         # Save image
-        misc.imsave(__RESULTS_FOLDER__+name+"_masked"+ext, img_with_blurs)
+        misc.imsave(__RESULTS_FOLDER__+str(i+1)+ext, imgs_side_2_side)
 
         # TODO: Save mask too
