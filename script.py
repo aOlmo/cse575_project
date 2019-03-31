@@ -26,15 +26,26 @@ def get_sample_img():
 def apply_mask(mask, img, opposite=False):
     val = 0 if not opposite else 255
 
+    cut_img = img[17:137, 265:380]
+
+    blurred_patch = apply_blur(cut_img)
+    img[17:137, 265:380] = 0
+    img[17:137, 265:380] = blurred_patch
+
+    display_img(img)
+
     cv2.rectangle(mask, (265, 17), (380, 137), (val, val, val), -1)
     cv2.rectangle(mask, (0, 280), (100, 320), (val, val, val), -1)
+
+    display_img(mask)
+    exit()
 
     # Apply the mask and return the result
     return cv2.bitwise_and(img, mask)
 
 
 def apply_blur(img):
-    blurred_image = cv2.blur(img, (10,10))
+    blurred_image = cv2.blur(img, (40,40))
     return blurred_image
 
 
@@ -74,6 +85,7 @@ if __name__ == '__main__':
         # it could be because when adding, the values around the blurred borders are not 0
         # (but they should)
         blurred_patches = apply_blur(opposite_img)
+        display_img(blurred_patches)
         final_img = masked_img + blurred_patches
         display_img(final_img)
 
