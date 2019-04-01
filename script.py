@@ -4,6 +4,7 @@ import glob
 from scipy import misc
 import numpy as np
 import matplotlib.pyplot as plt
+import imageio
 
 __TEST_IMG__ = "data/dog.jpg"
 __RESULTS_FOLDER__ = "results/"
@@ -25,7 +26,7 @@ def get_sample_img():
 # TODO: Create more masks
 def get_mask(mask):
     val = 255
-    cv2.rectangle(mask, (221, 17), (321, 137), (val, val, val), -1)
+    cv2.rectangle(mask, (221, 100), (130, 137), (val, val, val), -1)
     cv2.rectangle(mask, (0, 210), (100, 120), (val, val, val), -1)
 
     return mask
@@ -43,6 +44,7 @@ def get_img(img):
     return rgb_img
 
 
+
 if __name__ == '__main__':
 
     for i, file in enumerate(glob.glob(__IMGS_FOLDER__+"*.*")):
@@ -51,16 +53,16 @@ if __name__ == '__main__':
         img = cv2.resize(img, (256, 256))
 
         mask_zeros = np.zeros_like(img)
-        blurred_img = apply_blur(img)
+        # blurred_img = apply_blur(img)
+
+        white_img = np.full_like(img, 160)
 
         mask_zeros = get_mask(mask_zeros)
-        img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), blurred_img, img)
+        img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), white_img, img)
 
         imgs_side_2_side = np.hstack((img, img_with_blurs))
 
-        display_img(imgs_side_2_side)
-
         # Save image
-        misc.imsave(__RESULTS_FOLDER__+str(i+1)+ext, imgs_side_2_side)
+        imageio.imsave(__RESULTS_FOLDER__+str(i+1)+ext, imgs_side_2_side)
 
         # TODO: Save mask too
