@@ -35,6 +35,19 @@ def get_rectangle_mask(mask):
     return mask
 
 
+def get_random_rectangle_mask(mask):
+    val = 255
+    x1, y1 = np.random.randint(200, 257, size=2)  # randint(low 'inclusive' , high 'exclusive', size=None)
+    offset = np.random.randint(40, min(x1, y1, 100))  # force larger rectangles by having value > 40 but < 120
+    cv2.rectangle(mask, (x1, y1), (x1 - offset, y1 - offset), (val, val, val), -1)
+
+    x2, y2 = np.random.randint(50, min(x1 - offset, y1 - offset), size=2)  # force second rectangle in top left corner above first rectangle
+    offset = np.random.randint(40, min(x2, y2))
+    cv2.rectangle(mask, (x2, y2), (x2 - offset, y2 - offset), (val, val, val), -1)
+
+    return mask
+
+
 def get_circle_mask(mask):
     val = 255  # white = rgb(255, 255, 255)
     cv2.circle(mask, (70, 200), 30, (val, val, val), -1)  # circle(img, point center, int radius, color rgb, thickness)
@@ -68,8 +81,9 @@ if __name__ == '__main__':
 
         white_img = np.full_like(img, 255)
 
+        mask_zeros = get_random_rectangle_mask(mask_zeros)
         # mask_zeros = get_rectangle_mask(mask_zeros)
-        mask_zeros = get_circle_mask(mask_zeros)
+        # mask_zeros = get_circle_mask(mask_zeros)
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), white_img, img)
 
         imgs_side_2_side = np.hstack((img, img_with_blurs))
