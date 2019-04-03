@@ -7,8 +7,13 @@ import matplotlib.pyplot as plt
 import imageio
 
 __TEST_IMG__ = "data/dog.jpg"
-__RESULTS_FOLDER__ = "results/"
+__RESULTS_FOLDER__ = "results/dog_black"
 __IMGS_FOLDER__ = "data/"
+
+try:
+    os.mkdir(__RESULTS_FOLDER__)
+except:
+    pass
 
 def display_img(rgb_img):
     plt.imshow(rgb_img)
@@ -53,16 +58,19 @@ if __name__ == '__main__':
         img = cv2.resize(img, (256, 256))
 
         mask_zeros = np.zeros_like(img)
-        # blurred_img = apply_blur(img)
+        # aux = apply_blur(img, intensity=90)
 
-        white_img = np.full_like(img, 160)
+        # aux = np.zeros((256, 256, 3), 'uint8')
+        # aux[..., 0] = 0
+        # aux[..., 1] = 0
+        # aux[..., 2] = 0
 
         mask_zeros = get_mask(mask_zeros)
-        img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), white_img, img)
+        img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), aux, img)
 
         imgs_side_2_side = np.hstack((img, img_with_blurs))
 
         # Save image
-        imageio.imsave(__RESULTS_FOLDER__+str(i+1)+ext, imgs_side_2_side)
+        imageio.imsave(__RESULTS_FOLDER__+"/"+str(i+1)+ext, imgs_side_2_side)
 
         # TODO: Save mask too
