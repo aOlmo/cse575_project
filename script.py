@@ -10,13 +10,10 @@ __TEST_IMG__ = "data/dog.jpg"
 __RESULTS_FOLDER__ = "results/dog_black"
 __IMGS_FOLDER__ = "data/"
 
-<<<<<<< HEAD
 try:
     os.mkdir(__RESULTS_FOLDER__)
 except:
     pass
-=======
->>>>>>> 3fceb217f009ffdca4375f0f7f7bb02895cb2809
 
 def display_img(rgb_img):
     plt.imshow(rgb_img)
@@ -84,14 +81,14 @@ if __name__ == '__main__':
         img = cv2.resize(img, (256, 256))
 
         mask_zeros = np.zeros_like(img)
-        # aux = apply_blur(img, intensity=90)
+        aux = apply_blur(img, intensity=90)
 
         # aux = np.zeros((256, 256, 3), 'uint8')
         # aux[..., 0] = 0
         # aux[..., 1] = 0
         # aux[..., 2] = 0
 
-        mask_zeros = get_mask(mask_zeros)
+        mask_zeros = get_rectangle_mask(mask_zeros)
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), aux, img)
 
         imgs_side_2_side = np.hstack((img, img_with_blurs))
