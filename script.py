@@ -82,7 +82,7 @@ if __name__ == '__main__':
     parser.add_argument('--defect', default="blur", type=str, help='Image defect: blur, color or full_blur')
     parser.add_argument('--random', default=True, type=bool, help='Randomize patches')
     parser.add_argument('--split_percent', default=79.72, type=float, help='Split percentage of train vs test images')
-    parser.add_argument('--max_images', default=3000, type=int, help='Max number of images to process in the dataset')
+    parser.add_argument('--max_images', type=int, help='Max number of images to process in the dataset')
     parser.add_argument('--resize_crop', default="resize", type=str, help='Choose to resize or crop the images')
     parser.add_argument('--res_folder', default="results/", type=str, help='Choose to resize or crop the images')
 
@@ -124,7 +124,9 @@ if __name__ == '__main__':
 
     curr_save_dir = save_train_dir
     curr_originals_save_dir = originals_save_train_dir
-    print(args.rootdir + "/*.*")
+
+    print("# Training: {} \n# Testing: {}".format(train_split, test_split))
+
     for i, file in enumerate(glob.glob(args.rootdir + "/*.*")):
         name, ext = os.path.splitext(file.split("/")[-1])
         img = get_img(file)
@@ -163,6 +165,7 @@ if __name__ == '__main__':
         imageio.imsave(curr_originals_save_dir+"/"+str(i+1)+ext, img)
 
         if i == args.max_images:
+            print("BREAKING {}, {}".format(i, args.max_images))
             break
         elif i == train_split:
             curr_save_dir = save_test_dir
