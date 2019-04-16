@@ -70,7 +70,7 @@ def get_img(img):
 
 def make_directory(path):
     try:
-        os.makedirs(path, exist_ok=True)
+        os.makedirs(path)
     except OSError:  # results directory path already exists
         pass
 
@@ -81,14 +81,15 @@ if __name__ == '__main__':
     parser.add_argument('--i', default=15, type=int, help='Intensity of the blur kernel')
     parser.add_argument('--defect', default="blur", type=str, help='Image defect: blur, color or full_blur')
     parser.add_argument('--random', default=True, type=bool, help='Randomize patches')
-    parser.add_argument('--split_percent', default=70, type=int, help='Split percentage of train vs test images')
-    parser.add_argument('--max_images', default=500, type=int, help='Max number of images to process in the dataset')
+    parser.add_argument('--split_percent', default=79.72, type=float, help='Split percentage of train vs test images')
+    parser.add_argument('--max_images', default=3000, type=int, help='Max number of images to process in the dataset')
     parser.add_argument('--resize_crop', default="crop", type=str, help='Choose to resize or crop the images')
     parser.add_argument('--res_folder', default="results/", type=str, help='Choose to resize or crop the images')
 
     args = parser.parse_args()
 
-    root_name = args.rootdir.split("/")[0]
+    root_path = args.rootdir
+    root_name = args.rootdir.split("/")[-1]
     PATH = args.res_folder+root_name+"/"+root_name
 
     if args.random:
@@ -112,14 +113,15 @@ if __name__ == '__main__':
     make_directory(originals_save_train_dir)
     make_directory(originals_save_test_dir)
 
-    total_imgs = len([name for name in os.listdir(root_name) if os.path.isfile(os.path.join(root_name, name))])
+    total_imgs = len([name for name in os.listdir(root_path) if os.path.isfile(os.path.join(root_path, name))])
 
-    train_split = round(total_imgs * (args.split_percent/100))
+    train_split = int(round(total_imgs * (args.split_percent/100)))
     test_split = total_imgs - train_split
 
     curr_save_dir = save_train_dir
     curr_originals_save_dir = originals_save_train_dir
-    for i, file in enumerate(glob.glob(args.rootdir + "*.*")):
+    print(args.rootdir + "/*.*")
+    for i, file in enumerate(glob.glob(args.rootdir + "/*.*")):
         name, ext = os.path.splitext(file.split("/")[-1])
         img = get_img(file)
 
