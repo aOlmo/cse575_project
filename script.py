@@ -104,7 +104,7 @@ if __name__ == '__main__':
     if args.defect == "color":
         PATH += "_color"
     if args.defect == "full_blur":
-        PATH += "_full_blur"
+        PATH += "_full_blur_" + str(args.i)
 
     save_train_dir = PATH+"/train"
     save_test_dir = PATH+"/test"
@@ -162,7 +162,7 @@ if __name__ == '__main__':
 
         # Save images
         imageio.imsave(curr_save_dir+"/"+str(i+1)+ext, imgs_side_2_side)
-        imageio.imsave(curr_originals_save_dir+"/"+str(i+1)+ext, img)
+        # imageio.imsave(curr_originals_save_dir+"/"+str(i+1)+ext, img)
 
         if i == args.max_images:
             print("BREAKING {}, {}".format(i, args.max_images))
