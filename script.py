@@ -70,7 +70,7 @@ def get_img(img):
 
 def make_directory(path):
     try:
-        os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
     except OSError:  # results directory path already exists
         pass
 
@@ -83,13 +83,18 @@ if __name__ == '__main__':
     parser.add_argument('--random', default=True, type=bool, help='Randomize patches')
     parser.add_argument('--split_percent', default=79.72, type=float, help='Split percentage of train vs test images')
     parser.add_argument('--max_images', default=3000, type=int, help='Max number of images to process in the dataset')
-    parser.add_argument('--resize_crop', default="crop", type=str, help='Choose to resize or crop the images')
+    parser.add_argument('--resize_crop', default="resize", type=str, help='Choose to resize or crop the images')
     parser.add_argument('--res_folder', default="results/", type=str, help='Choose to resize or crop the images')
 
     args = parser.parse_args()
 
     root_path = args.rootdir
-    root_name = args.rootdir.split("/")[-1]
+    # if (len(args.rootdir.split("/")) )
+    if (args.rootdir.split("/")[-1] != ""):
+        root_name = args.rootdir.split("/")[-1]
+    else:
+        root_name = args.rootdir.split("/")[-2]
+
     PATH = args.res_folder+root_name+"/"+root_name
 
     if args.random:
@@ -100,7 +105,6 @@ if __name__ == '__main__':
         PATH += "_color"
     if args.defect == "full_blur":
         PATH += "_full_blur"
-
 
     save_train_dir = PATH+"/train"
     save_test_dir = PATH+"/test"
@@ -163,3 +167,6 @@ if __name__ == '__main__':
         elif i == train_split:
             curr_save_dir = save_test_dir
             curr_originals_save_dir = originals_save_test_dir
+
+        if i % 50 == 0:
+            print("[+]: Iteration {}/{}".format(i, total_imgs))
