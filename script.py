@@ -81,7 +81,7 @@ if __name__ == '__main__':
     parser.add_argument('--i', default=15, type=int, help='Intensity of the blur kernel')
     parser.add_argument('--defect', default="blur", type=str, help='Image defect: blur or color')
     parser.add_argument('--random', default=True, type=bool, help='Randomize patches')
-    parser.add_argument('--split_percent', default=70, type=int, help='Split percentage of train vs test images')
+    parser.add_argument('--split_percent', default=50, type=int, help='Split percentage of train vs test images')
     parser.add_argument('--max_images', default=500, type=int, help='Max number of images to process in the dataset')
     parser.add_argument('--resize_crop', default="crop", type=str, help='Choose to resize or crop the images')
     parser.add_argument('--res_folder', default="results/", type=str, help='Choose to resize or crop the images')
@@ -90,6 +90,7 @@ if __name__ == '__main__':
 
     root_name = args.rootdir.split("/")[0]
     PATH = args.res_folder+root_name+"/"+root_name
+
     if args.random:
         PATH += "_random"
     if args.defect == "blur":
@@ -97,14 +98,25 @@ if __name__ == '__main__':
     if args.defect == "color":
         PATH += "_color"
 
-    make_directory(PATH+"/train")
-    make_directory(PATH+"/test")
-    make_directory(PATH+root_name+"ORIGINALS_"+"/train")
-    make_directory(PATH+root_name+"ORIGINALS_"+"/test")
 
-    print(PATH)
-    exit()
+    save_train_dir = PATH+"/train"
+    save_test_dir = PATH+"/test"
+    originals_save_train_dir = PATH + "_ORIGINALS/train"
+    originals_save_test_dir = PATH + "_ORIGINALS/test"
 
+    make_directory(save_train_dir)
+    make_directory(save_test_dir)
+
+    make_directory(originals_save_train_dir)
+    make_directory(originals_save_test_dir)
+
+    total_imgs = len([name for name in os.listdir(root_name) if os.path.isfile(os.path.join(root_name, name))])
+
+    train_split = round(total_imgs * (args.split_percent/100))
+    test_split = total_imgs - train_split
+
+    curr_save_dir = save_train_dir
+    curr_originals_save_dir = originals_save_train_dir
     for i, file in enumerate(glob.glob(args.rootdir + "*.*")):
         name, ext = os.path.splitext(file.split("/")[-1])
         img = get_img(file)
@@ -135,8 +147,12 @@ if __name__ == '__main__':
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), aux, img)
         imgs_side_2_side = np.hstack((img, img_with_blurs))
 
-        # Save image
-        # imageio.imsave(__RESULTS_FOLDER__+"/"+str(i+1)+ext, imgs_side_2_side)
+        # Save images
+        imageio.imsave(curr_save_dir+"/"+str(i+1)+ext, imgs_side_2_side)
+        imageio.imsave(curr_originals_save_dir+"/"+str(i+1)+ext, img)
 
-        if args.max_images == i:
+        if i == args.max_images:
             break
+        elif i == train_split:
+            curr_save_dir = save_test_dir
+            curr_originals_save_dir = originals_save_test_dir
