@@ -79,9 +79,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Image defects dataset creator')
     parser.add_argument('--rootdir', type=str, help='Input dir for images')
     parser.add_argument('--i', default=15, type=int, help='Intensity of the blur kernel')
-    parser.add_argument('--defect', default="blur", type=str, help='Image defect: blur or color')
+    parser.add_argument('--defect', default="blur", type=str, help='Image defect: blur, color or full_blur')
     parser.add_argument('--random', default=True, type=bool, help='Randomize patches')
-    parser.add_argument('--split_percent', default=50, type=int, help='Split percentage of train vs test images')
+    parser.add_argument('--split_percent', default=70, type=int, help='Split percentage of train vs test images')
     parser.add_argument('--max_images', default=500, type=int, help='Max number of images to process in the dataset')
     parser.add_argument('--resize_crop', default="crop", type=str, help='Choose to resize or crop the images')
     parser.add_argument('--res_folder', default="results/", type=str, help='Choose to resize or crop the images')
@@ -97,6 +97,8 @@ if __name__ == '__main__':
         PATH += "_blur_" + str(args.i)
     if args.defect == "color":
         PATH += "_color"
+    if args.defect == "full_blur":
+        PATH += "_full_blur"
 
 
     save_train_dir = PATH+"/train"
@@ -128,7 +130,7 @@ if __name__ == '__main__':
 
         mask_zeros = np.zeros_like(img)
 
-        if (args.defect == "blur"):
+        if (args.defect == "blur" or args.defect == "full_blur"):
             aux = apply_blur(img, intensity=args.i)
         else:
             aux = np.full_like(img, 255)  # white = 255, gray = 128, black = 0
@@ -143,6 +145,9 @@ if __name__ == '__main__':
         else:
             mask_zeros = get_rectangle_mask(mask_zeros)
             # mask_zeros = get_circle_mask(mask_zeros)
+
+        if args.defect == "full_blur":
+            mask_zeros = np.full_like(img, 255)
 
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), aux, img)
         imgs_side_2_side = np.hstack((img, img_with_blurs))
