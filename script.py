@@ -1,20 +1,15 @@
 import os
 import cv2
 import glob
-from scipy import misc
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import imageio
 
+from scipy import misc
+
 __TEST_IMG__ = "data/dog.jpg"
-__RESULTS_FOLDER__ = "results/dog_blur"
 __IMGS_FOLDER__ = "data/"
-
-try:
-    os.mkdir(__RESULTS_FOLDER__)
-except OSError:  # results directory path already exists
-    pass
-
 
 def display_img(rgb_img):
     plt.imshow(rgb_img)
@@ -31,7 +26,6 @@ def get_sample_img():
     return rgb_img
 
 
-# TODO: Create more masks
 def get_rectangle_mask(mask):
     val = 255
     cv2.rectangle(mask, (221, 100), (130, 137), (val, val, val), -1)
@@ -46,7 +40,8 @@ def get_random_rectangle_mask(mask):
     offset = np.random.randint(40, min(x1, y1, 100))  # force larger rectangles by having value > 40 but < 120
     cv2.rectangle(mask, (x1, y1), (x1 - offset, y1 - offset), (val, val, val), -1)
 
-    x2, y2 = np.random.randint(50, min(x1 - offset, y1 - offset), size=2)  # force second rectangle in top left corner above first rectangle
+    x2, y2 = np.random.randint(50, min(x1 - offset, y1 - offset),
+                               size=2)  # force second rectangle in top left corner above first rectangle
     offset = np.random.randint(40, min(x2, y2))
     cv2.rectangle(mask, (x2, y2), (x2 - offset, y2 - offset), (val, val, val), -1)
 
@@ -73,34 +68,75 @@ def get_img(img):
     rgb_img = cv2.merge([r, g, b])
     return rgb_img
 
+def make_directory(path):
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError:  # results directory path already exists
+        pass
 
 if __name__ == '__main__':
 
-    for i, file in enumerate(glob.glob(__IMGS_FOLDER__ + "*.*")):
+    parser = argparse.ArgumentParser(description='Image defects dataset creator')
+    parser.add_argument('--rootdir', type=str, help='Input dir for images')
+    parser.add_argument('--i', default=15, type=int, help='Intensity of the blur kernel')
+    parser.add_argument('--defect', default="blur", type=str, help='Image defect: blur or color')
+    parser.add_argument('--random', default=True, type=bool, help='Randomize patches')
+    parser.add_argument('--split_percent', default=70, type=int, help='Split percentage of train vs test images')
+    parser.add_argument('--max_images', default=500, type=int, help='Max number of images to process in the dataset')
+    parser.add_argument('--resize_crop', default="crop", type=str, help='Choose to resize or crop the images')
+    parser.add_argument('--res_folder', default="results/", type=str, help='Choose to resize or crop the images')
+
+    args = parser.parse_args()
+
+    root_name = args.rootdir.split("/")[0]
+    PATH = args.res_folder+root_name+"/"+root_name
+    if args.random:
+        PATH += "_random"
+    if args.defect == "blur":
+        PATH += "_blur_" + str(args.i)
+    if args.defect == "color":
+        PATH += "_color"
+
+    make_directory(PATH+"/train")
+    make_directory(PATH+"/test")
+    make_directory(PATH+root_name+"ORIGINALS_"+"/train")
+    make_directory(PATH+root_name+"ORIGINALS_"+"/test")
+
+    print(PATH)
+    exit()
+
+    for i, file in enumerate(glob.glob(args.rootdir + "*.*")):
         name, ext = os.path.splitext(file.split("/")[-1])
         img = get_img(file)
-        # img = cv2.resize(img, (256, 256))  # resize image
-        img = img[30:286, 100:356].copy()  # crop image
+
+        if (args.resize_crop == "crop"):
+            img = img[30:286, 100:356].copy()  # crop image
+        else:
+            img = cv2.resize(img, (256, 256))  # resize image
 
         mask_zeros = np.zeros_like(img)
-        aux = apply_blur(img, intensity=90)
 
-        # aux = np.zeros((256, 256, 3), 'uint8')
-        # aux[..., 0] = 0
-        # aux[..., 1] = 0
-        # aux[..., 2] = 0
+        if (args.defect == "blur"):
+            aux = apply_blur(img, intensity=args.i)
+        else:
+            aux = np.full_like(img, 255)  # white = 255, gray = 128, black = 0
+            # black_img = np.full_like(img, 0)
+            # aux = np.zeros((256, 256, 3), 'uint8')
+            # aux[..., 0] = 0
+            # aux[..., 1] = 0
+            # aux[..., 2] = 0
 
-        # white_img = np.full_like(img, 255)  # white = 255, gray = 128, black = 0
-        # black_img = np.full_like(img, 0)
+        if args.random:
+            mask_zeros = get_random_rectangle_mask(mask_zeros)
+        else:
+            mask_zeros = get_rectangle_mask(mask_zeros)
+            # mask_zeros = get_circle_mask(mask_zeros)
 
-        mask_zeros = get_random_rectangle_mask(mask_zeros)
-        # mask_zeros = get_rectangle_mask(mask_zeros)
-        # mask_zeros = get_circle_mask(mask_zeros)
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), aux, img)
-
         imgs_side_2_side = np.hstack((img, img_with_blurs))
 
         # Save image
-        imageio.imsave(__RESULTS_FOLDER__+"/"+str(i+1)+ext, imgs_side_2_side)
+        # imageio.imsave(__RESULTS_FOLDER__+"/"+str(i+1)+ext, imgs_side_2_side)
 
-        # TODO: Save mask too
+        if args.max_images == i:
+            break
