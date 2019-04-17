@@ -11,6 +11,7 @@ from scipy import misc
 __TEST_IMG__ = "data/dog.jpg"
 __IMGS_FOLDER__ = "data/"
 
+
 def display_img(rgb_img):
     plt.imshow(rgb_img)
     # to hide tick values on X and Y axis
@@ -68,11 +69,23 @@ def get_img(img):
     rgb_img = cv2.merge([r, g, b])
     return rgb_img
 
+
 def make_directory(path):
     try:
         os.makedirs(path, exist_ok=True)
     except OSError:  # results directory path already exists
         pass
+
+
+def t_or_f(arg):
+    ua = str(arg).upper()
+    if 'TRUE'.startswith(ua):
+        return True
+    elif 'FALSE'.startswith(ua):
+        return False
+    else:
+        pass
+
 
 if __name__ == '__main__':
 
@@ -80,11 +93,19 @@ if __name__ == '__main__':
     parser.add_argument('--rootdir', type=str, help='Input dir for images')
     parser.add_argument('--i', default=15, type=int, help='Intensity of the blur kernel')
     parser.add_argument('--defect', default="blur", type=str, help='Image defect: blur, color or full_blur')
-    parser.add_argument('--random', default=True, type=bool, help='Randomize patches')
     parser.add_argument('--split_percent', default=79.72, type=float, help='Split percentage of train vs test images')
     parser.add_argument('--max_images', type=int, help='Max number of images to process in the dataset')
     parser.add_argument('--resize_crop', default="resize", type=str, help='Choose to resize or crop the images')
-    parser.add_argument('--res_folder', default="results/", type=str, help='Choose to resize or crop the images')
+    parser.add_argument('--res_folder', default="results/", type=str, help='Folder where the results will be saved')
+
+    parser.add_argument('--save_as_pix2pix_format', action="store_true", help='Flag to save the resulting images in Pix2Pix format')
+    parser.add_argument('--no_save_as_pix2pix_format', action="store_false")
+
+    parser.add_argument('--save_originals', action="store_true", dest="save_originals", help='Flag to only save the image defects')
+    parser.add_argument('--no_save_originals', action="store_false", dest="save_originals")
+
+    parser.add_argument('--random', action="store_true", dest="random", help='Randomize patches')
+    parser.add_argument('--no_random', action="store_false", dest="random")
 
     args = parser.parse_args()
 
@@ -95,9 +116,9 @@ if __name__ == '__main__':
     else:
         root_name = args.rootdir.split("/")[-2]
 
-    PATH = args.res_folder+root_name+"/"+root_name
+    PATH = args.res_folder + root_name + "/" + root_name
 
-    if args.random:
+    if args.random and args.defect != "full_blur":
         PATH += "_random"
     if args.defect == "blur":
         PATH += "_blur_" + str(args.i)
@@ -106,8 +127,8 @@ if __name__ == '__main__':
     if args.defect == "full_blur":
         PATH += "_full_blur_" + str(args.i)
 
-    save_train_dir = PATH+"/train"
-    save_test_dir = PATH+"/test"
+    save_train_dir = PATH + "/train"
+    save_test_dir = PATH + "/test"
     originals_save_train_dir = PATH + "_ORIGINALS/train"
     originals_save_test_dir = PATH + "_ORIGINALS/test"
 
@@ -119,7 +140,7 @@ if __name__ == '__main__':
 
     total_imgs = len([name for name in os.listdir(root_path) if os.path.isfile(os.path.join(root_path, name))])
 
-    train_split = int(round(total_imgs * (args.split_percent/100)))
+    train_split = int(round(total_imgs * (args.split_percent / 100)))
     test_split = total_imgs - train_split
 
     curr_save_dir = save_train_dir
@@ -131,10 +152,11 @@ if __name__ == '__main__':
         name, ext = os.path.splitext(file.split("/")[-1])
         img = get_img(file)
 
-        if (args.resize_crop == "crop"):
-            img = img[30:286, 100:356].copy()  # crop image
-        else:
-            img = cv2.resize(img, (256, 256))  # resize image
+        if args.save_as_pix2pix_format:
+            if args.resize_crop == "crop":
+                img = img[30:286, 100:356].copy()  # crop image
+            elif args.resize_crop == "resize":
+                img = cv2.resize(img, (256, 256))  # resize image
 
         mask_zeros = np.zeros_like(img)
 
@@ -160,9 +182,16 @@ if __name__ == '__main__':
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), aux, img)
         imgs_side_2_side = np.hstack((img, img_with_blurs))
 
-        # Save images
-        imageio.imsave(curr_save_dir+"/"+str(i+1)+ext, imgs_side_2_side)
-        imageio.imsave(curr_originals_save_dir+"/"+str(i+1)+ext, img)
+        # Saving images
+        # --------------------------------------------------------------------------
+        if not args.save_as_pix2pix_format:
+            imageio.imsave(curr_save_dir + "/" + str(i + 1) + ext, img_with_blurs)
+        else:
+            imageio.imsave(curr_save_dir + "/" + str(i + 1) + ext, imgs_side_2_side)
+
+        if args.save_originals:
+            imageio.imsave(curr_originals_save_dir + "/" + str(i + 1) + ext, img)
+        # --------------------------------------------------------------------------
 
         if i == args.max_images:
             print("BREAKING {}, {}".format(i, args.max_images))
