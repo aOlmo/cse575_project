@@ -6,6 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import imageio
 
+from skimage.measure import compare_ssim as ssim
+from skimage.measure import compare_psnr as psnr
+from skimage.measure import compare_mse as mse
+
 from scipy import misc
 
 __TEST_IMG__ = "data/dog.jpg"
@@ -76,15 +80,35 @@ def make_directory(path):
     except OSError:  # results directory path already exists
         pass
 
+def get_metrics(images, metric):
+    height, width = images.shape[0], images.shape[1]
 
-def t_or_f(arg):
-    ua = str(arg).upper()
-    if 'TRUE'.startswith(ua):
-        return True
-    elif 'FALSE'.startswith(ua):
-        return False
-    else:
-        pass
+    width_cutoff = width // 2
+    s1 = images[..., :width_cutoff, :]
+    s2 = images[..., width_cutoff:, :]
+
+    s1[s1==np.nan] = 0
+    s2[s2==np.nan] = 0
+
+    sum = 0
+    s1 = np.expand_dims(s1, 0)
+    s2 = np.expand_dims(s2, 0)
+
+    for left, right in zip(s1, s2):
+        if (metric == "ssim"):
+            sum += ssim(left, right, data_range=right.max() - right.min(), multichannel=True)
+        elif (metric == "psnr"):
+            sum += psnr(left, right)
+        elif (metric == "mse"):
+            sum += mse(left, right)
+        else:
+            print("Metric not recognized")
+            exit()
+
+    return sum
+
+def print_metrics(ssim_sum, psnr_sum, i):
+    print("[+]: Iteration {}\nAvg SSIM: {}, Avg PSNR: {}".format(i, round(ssim_sum/i, 3), round(psnr_sum/i, 3)))
 
 
 if __name__ == '__main__':
@@ -93,7 +117,7 @@ if __name__ == '__main__':
     parser.add_argument('--rootdir', type=str, help='Input dir for images')
     parser.add_argument('--i', default=15, type=int, help='Intensity of the blur kernel')
     parser.add_argument('--defect', default="blur", type=str, help='Image defect: blur, color or full_blur')
-    parser.add_argument('--split_percent', default=79.72, type=float, help='Split percentage of train vs test images')
+    parser.add_argument('--split_percent', default=100, type=float, help='Split percentage of train vs test images') # 79.72
     parser.add_argument('--max_images', type=int, help='Max number of images to process in the dataset')
     parser.add_argument('--resize_crop', default="resize", type=str, help='Choose to resize or crop the images')
     parser.add_argument('--res_folder', default="results/", type=str, help='Folder where the results will be saved')
@@ -107,10 +131,14 @@ if __name__ == '__main__':
     parser.add_argument('--random', action="store_true", dest="random", help='Randomize patches')
     parser.add_argument('--no_random', action="store_false", dest="random")
 
+    parser.set_defaults(random=True)
+    parser.set_defaults(save_originals=False)
+    parser.set_defaults(save_as_pix2pix_format=False)
+
     args = parser.parse_args()
 
     root_path = args.rootdir
-    # if (len(args.rootdir.split("/")) )
+
     if (args.rootdir.split("/")[-1] != ""):
         root_name = args.rootdir.split("/")[-1]
     else:
@@ -132,11 +160,15 @@ if __name__ == '__main__':
     originals_save_train_dir = PATH + "_ORIGINALS/train"
     originals_save_test_dir = PATH + "_ORIGINALS/test"
 
-    make_directory(save_train_dir)
-    make_directory(save_test_dir)
 
-    make_directory(originals_save_train_dir)
-    make_directory(originals_save_test_dir)
+    make_directory(save_train_dir)
+    if args.split_percent < 100:
+        make_directory(save_test_dir)
+
+    if args.save_originals:
+        make_directory(originals_save_train_dir)
+        if args.split_percent < 100:
+            make_directory(originals_save_test_dir)
 
     total_imgs = len([name for name in os.listdir(root_path) if os.path.isfile(os.path.join(root_path, name))])
 
@@ -148,15 +180,17 @@ if __name__ == '__main__':
 
     print("# Training: {} \n# Testing: {}".format(train_split, test_split))
 
+
+    ssim_sum = 0
+    psnr_sum = 0
     for i, file in enumerate(glob.glob(args.rootdir + "/*.*")):
         name, ext = os.path.splitext(file.split("/")[-1])
         img = get_img(file)
 
-        if args.save_as_pix2pix_format:
-            if args.resize_crop == "crop":
-                img = img[30:286, 100:356].copy()  # crop image
-            elif args.resize_crop == "resize":
-                img = cv2.resize(img, (256, 256))  # resize image
+        if args.resize_crop == "crop":
+            img = img[30:286, 100:356].copy()  # crop image
+        elif args.resize_crop == "resize":
+            img = cv2.resize(img, (256, 256))  # resize image
 
         mask_zeros = np.zeros_like(img)
 
@@ -170,17 +204,19 @@ if __name__ == '__main__':
             # aux[..., 1] = 0
             # aux[..., 2] = 0
 
-        if args.random:
+        if args.random and args.defect != "full_blur":
             mask_zeros = get_random_rectangle_mask(mask_zeros)
         else:
             mask_zeros = get_rectangle_mask(mask_zeros)
-            # mask_zeros = get_circle_mask(mask_zeros)
 
         if args.defect == "full_blur":
             mask_zeros = np.full_like(img, 255)
 
         img_with_blurs = np.where(mask_zeros == np.array([255, 255, 255]), aux, img)
         imgs_side_2_side = np.hstack((img, img_with_blurs))
+
+        ssim_sum += get_metrics(imgs_side_2_side, "ssim")
+        psnr_sum += get_metrics(imgs_side_2_side, "psnr")
 
         # Saving images
         # --------------------------------------------------------------------------
@@ -194,11 +230,14 @@ if __name__ == '__main__':
         # --------------------------------------------------------------------------
 
         if i == args.max_images:
-            print("BREAKING {}, {}".format(i, args.max_images))
+            print("[+]: Breaking {}, {}".format(i, args.max_images))
             break
         elif i == train_split:
             curr_save_dir = save_test_dir
             curr_originals_save_dir = originals_save_test_dir
 
-        if i % 50 == 0:
+        if (i % 50 == 0) and i != 0:
             print("[+]: Iteration {}/{}".format(i, total_imgs))
+            print_metrics(ssim_sum, psnr_sum, i)
+
+    print("[+]: End at iteration {}\nAvg SSIM: {}, Avg PSNR: {}".format(i, round(ssim_sum/i, 4), round(psnr_sum/i, 4)))
